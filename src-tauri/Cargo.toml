@@ -1,0 +1,28 @@
+[package]
+name = "costa"
+version = "0.0.0"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "1", features = [] }
+
+[dependencies]
+tauri-plugin-store = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
+tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
+log = "^0.4"
+tauri = { version = "1", features = [ "system-tray", "api-all"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+debug_print = "1.0.0"
+libsqlite3-sys = { version = ">=0.17.2, <0.26.0", features = ["bundled"] }
+diesel = { version = "2.1.0", features = ["sqlite", "chrono", "serde_json", "returning_clauses_for_sqlite_3_35"] }
+diesel_migrations = "2.0.0"
+tokio = { version = "1", features = ["full"] }
+
+[features]
+# This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
