@@ -27,7 +27,7 @@ fn main() {
             let menu = init_system_tray_menu(Some(&app), Some(app.handle().clone()));
             let _ = app.tray_handle().set_menu(menu);
             // init store
-            if check_file_if_exists(get_sotre_path()) {
+            if !check_file_if_exists(get_sotre_path()) {
                 sotre::init_tauri_store(app);
             }
             Ok(())
