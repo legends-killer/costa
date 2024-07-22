@@ -1,5 +1,6 @@
 
 use std::{fs::{File, OpenOptions}, io::{Read, Write}};
+use std::path::{Path, PathBuf};
 
 pub fn create_file(path: &str, content: &str) -> std::io::Result<()> {
     let mut file = File::create(path)?;
@@ -7,8 +8,8 @@ pub fn create_file(path: &str, content: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn check_file_if_exists(path: &str) -> bool {
-    std::path::Path::new(path).exists()
+pub fn check_file_if_exists(path: impl AsRef<Path>) -> bool {
+    Path::new(path.as_ref()).exists()
 }
 
 pub fn read_file_to_string(path: &str) -> std::io::Result<String> {

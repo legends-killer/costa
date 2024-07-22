@@ -1,7 +1,7 @@
 use crate::simulator::device::DeviceMap;
 
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct TrayMenu {
   pub simulator: DeviceMap,
 }

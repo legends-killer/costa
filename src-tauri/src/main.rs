@@ -8,35 +8,13 @@ mod simulator;
 mod sotre;
 mod tray;
 
-use std::sync::Mutex;
-
-use debug_print::debug_println;
-use diesel::result;
-use path::get_app_data_dir;
-use serde_json::json;
-use simulator::command::get_all_devices;
-use sotre::{dbg_init_store, CostaStore, CostaStoreWrapper};
-use tauri::{AppHandle, SystemTrayMenu};
+use file::check_file_if_exists;
+use path::get_sotre_path;
 use tauri_plugin_log::LogTarget;
-use tauri_plugin_store::StoreBuilder;
-use tray::{
-    menu::TrayMenu,
-    tray::{init_system_tray, init_system_tray_menu, on_system_tray_event},
-};
+use tray::tray::{init_system_tray, init_system_tray_menu, on_system_tray_event};
 
 fn main() {
     let app = tauri::Builder::default()
-        .manage(CostaStore {
-            store: Mutex::new(CostaStoreWrapper {
-                simulator: get_all_devices(),
-                tray: TrayMenu {
-                    simulator: get_all_devices(),
-                },
-            }),
-        })
-        // .manage(SystemTrayMenuWrapper {
-        //     store: Mutex::new(SystemTrayMenu::default()),
-        // })
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(
             tauri_plugin_log::Builder::default()
@@ -45,8 +23,13 @@ fn main() {
         )
         .system_tray(init_system_tray())
         .setup(|app| {
+            // init tray menu
             let menu = init_system_tray_menu(Some(&app), Some(app.handle().clone()));
             let _ = app.tray_handle().set_menu(menu);
+            // init store
+            if check_file_if_exists(get_sotre_path()) {
+                sotre::init_tauri_store(app);
+            }
             Ok(())
         })
         .on_system_tray_event(on_system_tray_event)

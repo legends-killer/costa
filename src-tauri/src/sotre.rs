@@ -4,17 +4,22 @@ use debug_print::debug_println;
 use serde::{de::Error, Deserialize, Serialize};
 use serde_json::json;
 use tauri::{App, AppHandle, EventLoopMessage, Manager, SystemTrayMenu};
-use tauri_plugin_store::{self, Store, StoreBuilder};
+use tauri_plugin_store::{self, Store, StoreBuilder, StoreCollection};
 
 use crate::{
+    constant::APP_NAME,
+    file::check_file_if_exists,
     path::{get_app_data_dir, get_sotre_path},
     simulator::{command::get_all_devices, device::DeviceMap},
     tray::menu::TrayMenu,
 };
+use tauri::Wry;
+use tauri_plugin_store::with_store;
 
 pub enum StoreKey {
     Simulator,
     Tray,
+    RecentDevices,
 }
 
 impl StoreKey {
@@ -22,19 +27,21 @@ impl StoreKey {
         match self {
             &StoreKey::Simulator => "simulator".to_owned(),
             &StoreKey::Tray => "tray".to_owned(),
+            &StoreKey::RecentDevices => "recent_devices".to_owned(),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CostaStoreWrapper {
     pub simulator: DeviceMap,
     pub tray: TrayMenu,
+    pub recent_devices: Vec<String>,
 }
 
-pub struct CostaStore {
-    pub store: Mutex<CostaStoreWrapper>,
-}
+// pub struct CostaStore {
+//     pub store: Mutex<CostaStoreWrapper>,
+// }
 
 impl CostaStoreWrapper {
     // impl getter function
@@ -60,6 +67,10 @@ impl CostaStoreWrapper {
                 self.tray = serde_json::from_value(value)?;
                 Ok(())
             }
+            StoreKey::RecentDevices => {
+                self.recent_devices = serde_json::from_value(value)?;
+                Ok(())
+            }
             _ => Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 "Invalid key",
@@ -68,77 +79,104 @@ impl CostaStoreWrapper {
     }
 }
 
-pub fn dbg_init_store(app: &App) {
-    let all_dev: String = get_all_devices().into();
-    let res = set_store(
-        app,
-        StoreKey::Tray,
-        &json!(TrayMenu {
-            simulator: get_all_devices()
-        }), // .to_string(),
-    );
+// Helper enum to abstract over &App and &AppHandle
+enum AppHandleRef {
+    App(AppHandle),
+    AppHandle(AppHandle),
 }
 
-pub fn set_store(
-    app: &App,
-    key: StoreKey,
-    value: &serde_json::Value,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let handle = app.handle();
-    let state: tauri::State<CostaStore> = handle.state();
-    let store = &state.store.lock().unwrap();
-
-    Ok(())
+impl From<&App> for AppHandleRef {
+    fn from(app: &App) -> Self {
+        AppHandleRef::App(app.app_handle())
+    }
 }
 
-// pub fn get_store(app: &App, key: StoreKey) -> Option<CostaStoreWrapper> {
-//     let handle = app.handle();
-//     let state: tauri::State<CostaStore> = handle.state();
-//     let binding = state.store.lock().unwrap();
-//     let store = binding.deref();
-//     let t = serde_json::from_value::<CostaStoreWrapper>();
-//     match t {
-//         Ok(v) => Some(v),
-//         Err(e) => {
-//             debug_println!("Error: {:?}", e);
-//             None
-//         }
-//     }
-// }
+impl From<&mut App> for AppHandleRef {
+    fn from(app: &mut App) -> Self {
+        AppHandleRef::App(app.app_handle())
+    }
+}
 
-pub fn get_tray_store(app: &App) -> Option<TrayMenu> {
-    let handle = app.handle();
-    let state: tauri::State<CostaStore> = handle.state();
-    let store = &state.store.lock().unwrap();
-    let value = store.get(StoreKey::Tray);
-    // debug_println!("store value: {:?}", value);
-    match value {
-        Some(v) => Some(serde_json::from_value::<TrayMenu>(v).unwrap()),
-        None => {
-            debug_println!("No value found for key: {}", StoreKey::Tray.as_str());
-            None
+impl From<&AppHandle> for AppHandleRef {
+    fn from(app_handle: &AppHandle) -> Self {
+        AppHandleRef::AppHandle(app_handle.clone())
+    }
+}
+
+impl From<AppHandle> for AppHandleRef {
+    fn from(app_handle: AppHandle) -> Self {
+        AppHandleRef::AppHandle(app_handle)
+    }
+}
+
+impl Into<AppHandle> for AppHandleRef {
+    fn into(self) -> AppHandle {
+        match self {
+            AppHandleRef::App(app) => app,
+            AppHandleRef::AppHandle(app_handle) => app_handle,
         }
     }
-    // serde_json::from_value::<TrayMenu>(store.get(StoreKey::Tray.as_str()).unwrap().clone())
 }
 
-pub trait StoreTrait {
-    fn get_tray_store(&self) -> Option<TrayMenu>;
+pub fn init_tauri_store<T: Into<AppHandleRef>>(app: T) {
+    let app_handle_ref: AppHandleRef = app.into();
+    // Extract the AppHandle from AppHandleRef before calling state
+    let app_handle = match app_handle_ref {
+        AppHandleRef::App(app_handle) => app_handle,
+        AppHandleRef::AppHandle(app_handle) => app_handle,
+    };
+    let mut store = StoreBuilder::new(app_handle.clone(), get_sotre_path()).build();
+    let store_content = CostaStoreWrapper {
+        simulator: get_all_devices(),
+        tray: TrayMenu {
+            simulator: get_all_devices(),
+        },
+        recent_devices: vec![],
+    };
+    store
+        .insert(APP_NAME.to_string(), json!(store_content))
+        .unwrap();
+    store.save();
+    // app.manage(store);
 }
 
-impl StoreTrait for AppHandle {
-    fn get_tray_store(&self) -> Option<TrayMenu> {
-        let state: tauri::State<CostaStore> = self.state();
-        let store = &state.store.lock().unwrap();
-        let value = store.get(StoreKey::Tray);
-        // debug_println!("store value: {:?}", value);
-        match value {
-            Some(v) => Some(serde_json::from_value::<TrayMenu>(v).unwrap()),
-            None => {
-                debug_println!("No value found for key: {}", StoreKey::Tray.as_str());
-                None
-            }
-        }
-        // serde_json::from_value::<TrayMenu>(store.get(StoreKey::Tray.as_str()).unwrap().clone())
-    }
+pub fn get_tauri_store<T: Into<AppHandleRef>>(app: T) -> std::option::Option<CostaStoreWrapper> {
+    let app_handle_ref: AppHandleRef = app.into();
+    // Extract the AppHandle from AppHandleRef before calling state
+    let app_handle = match app_handle_ref {
+        AppHandleRef::App(app_handle) => app_handle,
+        AppHandleRef::AppHandle(app_handle) => app_handle,
+    };
+    let stores = app_handle.state::<StoreCollection<Wry>>();
+    let path = get_sotre_path();
+    let mut ret: Option<CostaStoreWrapper> = None;
+
+    with_store(app_handle.clone(), stores, path, |store| {
+        ret = store
+            .get(APP_NAME.to_string())
+            .cloned()
+            .map(|value| serde_json::from_value::<CostaStoreWrapper>(value).unwrap());
+        Ok(())
+    });
+
+    ret
+}
+
+pub fn set_tauri_store<T: Into<AppHandleRef>>(app: T, new_store: CostaStoreWrapper) {
+    let app_handle_ref: AppHandleRef = app.into();
+    // Extract the AppHandle from AppHandleRef before calling state
+    let app_handle = match app_handle_ref {
+        AppHandleRef::App(app_handle) => app_handle,
+        AppHandleRef::AppHandle(app_handle) => app_handle,
+    };
+    let stores = app_handle.state::<StoreCollection<Wry>>();
+    let path = get_sotre_path();
+
+    with_store(app_handle.clone(), stores, path, |store| {
+        store
+            .insert(APP_NAME.to_string(), json!(new_store))
+            .unwrap();
+        store.save();
+        Ok(())
+    });
 }

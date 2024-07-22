@@ -6,7 +6,7 @@ use std::collections::HashMap;
  * key: version
  * value: list of devices
  */
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DeviceMap {
     #[serde(default = "HashMap::new")]
     pub devices: HashMap<String, Vec<Device>>,
@@ -54,7 +54,7 @@ impl Into<String> for DeviceMap {
         serde_json::to_string(&self).unwrap_or_else(|_| "{}".into())
     }
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Device {
     #[serde(rename = "dataPath")]
     pub data_path: String,
