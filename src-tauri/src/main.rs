@@ -6,14 +6,15 @@ mod file;
 mod path;
 mod simulator;
 mod sotre;
-mod tray;
 mod tick;
+mod tray;
 
 use file::check_file_if_exists;
 use path::get_sotre_path;
 use tauri_plugin_log::LogTarget;
 use tick::tick;
-use tray::tray::{init_system_tray, init_system_tray_menu, on_system_tray_event};
+use tray::event::on_system_tray_event;
+use tray::tray::{init_system_tray, init_system_tray_menu};
 
 fn main() {
     let app = tauri::Builder::default()
