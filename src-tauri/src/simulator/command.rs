@@ -13,7 +13,20 @@ pub fn get_all_devices() -> DeviceMap {
         .output()
         .expect("failed to execute process");
     let output = String::from_utf8(output.stdout).unwrap();
-    let devices: DeviceMap = serde_json::from_str(&output).unwrap();
+    let mut devices: DeviceMap = serde_json::from_str(&output).unwrap();
+    // set os_version field in devices using the key of the hashmap
+    for (key, device) in devices.devices.iter_mut() {
+        device.iter_mut().for_each(|d| {
+            d.os_version = Some(
+                key.clone()
+                    .split(".")
+                    .collect::<Vec<&str>>()
+                    .pop()
+                    .unwrap_or("unknown system version")
+                    .to_string(),
+            );
+        });
+    }
     devices
 }
 
@@ -196,7 +209,8 @@ fn find_all_menu_item_in_dev_tool() -> String {
 fn find_all_web_view_windows_in_simultor(simulator: &str) -> String {
     let apple_script = r#"
 
-    "#.to_owned();
+    "#
+    .to_owned();
     // exec `osascript -e 'tell application "System Events" to tell process "Simulator" to get entire contents of menu bar 1'` to find all menu items in Safari Dev Tool
     let output = std::process::Command::new("osascript")
         .arg("-e")
@@ -206,7 +220,6 @@ fn find_all_web_view_windows_in_simultor(simulator: &str) -> String {
     let output = String::from_utf8(output.stdout).unwrap();
     println!("{}", output);
     output
-
 }
 
 pub fn open_safari_dev_tool(udid: &str, web_view_name: Option<&str>) {
@@ -246,7 +259,8 @@ pub fn open_safari_dev_tool(udid: &str, web_view_name: Option<&str>) {
         end tell
     end menu_click_recurse
     menu_click({"Safari", "Develop", "${simulator}", "${window}"})
-    "#.to_owned();
+    "#
+    .to_owned();
 
     let all_menu_items = find_all_menu_item_in_dev_tool();
     let all_menu_items: Vec<String> = serde_json::from_str(&all_menu_items).unwrap();
@@ -254,7 +268,6 @@ pub fn open_safari_dev_tool(udid: &str, web_view_name: Option<&str>) {
     let device = all_devices.get_device_by_udid(udid).unwrap();
     let simulator = device.name.clone();
     let window = web_view_name.unwrap_or("WebView");
-    
 }
 
 pub fn open_simulator_app() {

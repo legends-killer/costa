@@ -80,7 +80,7 @@ impl CostaStoreWrapper {
 }
 
 // Helper enum to abstract over &App and &AppHandle
-enum AppHandleRef {
+pub enum AppHandleRef {
     App(AppHandle),
     AppHandle(AppHandle),
 }

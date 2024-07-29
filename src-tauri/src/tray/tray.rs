@@ -16,8 +16,9 @@ use crate::{
     simulator::{
         self,
         command::{boot_device, get_all_devices, open_simulator_app},
+        device::Device,
     },
-    sotre::{get_tauri_store, set_tauri_store, StoreKey},
+    sotre::{get_tauri_store, set_tauri_store, AppHandleRef, StoreKey},
     tray::menu::{self, TrayMenu},
 };
 
@@ -83,78 +84,87 @@ pub fn init_system_tray_menu(app: Option<&App>, handle: Option<AppHandle>) -> Sy
     let mut simulators = TrayMenu {
         simulator: get_all_devices(),
     };
-    // if (!app.is_none()) {
-    //     simulators = get_tray_store(app.unwrap()).unwrap();
-    // } else if (!handle.is_none()) {
-    //     simulators = handle.unwrap().get_tray_store().unwrap();
-    // }
-    // debug_println!("{:?}", simulators);
-
-    let sub_menu_devices = {
-        let mut menu = SystemTrayMenu::new();
-        for (version, devices) in simulators.simulator.devices.iter() {
-            for device in devices {
-                let mut menu_item = CustomMenuItem::new(device.udid.clone(), device.name.clone());
-                if (device.state == "Booted") {
-                    debug_println!("!!!!!!!!!!!!");
-                    menu_item = menu_item.selected();
-                }
-                debug_println!("{:?} {:?}", device.state, device.udid);
-                menu = menu.add_item(menu_item);
-            }
-            // menu = menu.add_item(CustomMenuItem::new(id.to_string(), label.to_string()));
-        }
-        SystemTraySubmenu::new("Devices", menu)
-    };
-    let sub_menu_recent_devices = {
-        let mut menu = SystemTrayMenu::new();
-        let store = get_tauri_store(handle.unwrap());
-        let menu_state = store.unwrap();
-        for recent_dev_id in menu_state.recent_devices.iter() {
-            // find the device from the simulator cache
-            let device = menu_state
+    let store = get_tauri_store(handle.clone().unwrap());
+    let menu_state = store.unwrap();
+    let recent_devices: Vec<&Device> = menu_state
+        .recent_devices
+        .iter()
+        .map(|id| {
+            simulators
                 .simulator
                 .devices
                 .iter()
-                .find_map(|(version, devices)| {
-                    devices.iter().find(|d| d.udid == recent_dev_id.to_string())
-                })
-                .unwrap();
+                .find_map(|(version, devices)| devices.iter().find(|d| d.udid == id.to_string()))
+                .unwrap()
+        })
+        .collect();
 
-            let mut menu_item = CustomMenuItem::new(device.udid.clone(), device.name.clone());
+    SystemTrayMenu::new()
+        .set_devices(&simulators.simulator)
+        .set_recent_devices(&recent_devices)
+        .set_basic_menu()
+}
+
+pub trait CostaTray {
+    fn set_devices(&self, devices: &simulator::device::DeviceMap) -> SystemTrayMenu;
+    fn set_recent_devices(self, devices: &Vec<&simulator::device::Device>) -> SystemTrayMenu;
+    fn set_basic_menu(&self) -> SystemTrayMenu;
+}
+
+impl CostaTray for SystemTrayMenu {
+    fn set_devices(&self, devices: &simulator::device::DeviceMap) -> SystemTrayMenu {
+        let sub_menu_devices = {
+            let mut menu = SystemTrayMenu::new();
+            for (version, devices) in devices.devices.iter() {
+                for device in devices {
+                    let mut menu_item = CustomMenuItem::new(
+                        device.udid.clone(),
+                        device.name.clone() + "-" + device.os_version.clone().unwrap().as_str(),
+                    );
+                    if (device.state == "Booted") {
+                        // debug_println!("!!!!!!!!!!!!");
+                        menu_item = menu_item.selected();
+                    }
+                    // debug_println!("{:?} {:?}", device.state, device.udid);
+                    menu = menu.add_item(menu_item);
+                }
+                // menu = menu.add_item(CustomMenuItem::new(id.to_string(), label.to_string()));
+            }
+            SystemTraySubmenu::new("Devices", menu)
+        };
+        self.clone()
+            .add_submenu(sub_menu_devices)
+            .add_native_item(SystemTrayMenuItem::Separator)
+    }
+    fn set_recent_devices(mut self, devices: &Vec<&simulator::device::Device>) -> SystemTrayMenu {
+        self = self.clone().add_item(
+            CustomMenuItem::new("recent_device".to_string(), "Recent Devices").disabled(),
+        );
+        for device in devices {
+            debug_println!("{:?} {:?}", device.state, device.udid);
+            let mut menu_item = CustomMenuItem::new(
+                device.udid.clone(),
+                device.name.clone() + "-" + device.os_version.clone().unwrap().as_str(),
+            );
             if device.state == "Booted" {
                 menu_item = menu_item.selected();
             }
-            menu = menu.add_item(menu_item);
+            self = self.clone().add_item(menu_item);
         }
-        SystemTraySubmenu::new("Recent Devices", menu)
-    };
-    // let sub_menu_github = {
-    //     let mut menu = SystemTrayMenu::new();
-    //     for (id, label, _url) in LINKS
-    //         .iter()
-    //         .filter(|(id, label, _url)| id.starts_with("open-github"))
-    //     {
-    //         menu = menu.add_item(CustomMenuItem::new(id.to_string(), label.to_string()));
-    //     }
-
-    //     SystemTraySubmenu::new("GitHub", menu)
-    // };
-    SystemTrayMenu::new()
-        .add_submenu(sub_menu_devices)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        // .add_item(CustomMenuItem::new("recent_devices", "Recently Used Devices").disabled())
-        .add_submenu(sub_menu_recent_devices)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(CustomMenuItem::new("qr_code".to_string(), "Scan QR Code"))
-        .add_item(CustomMenuItem::new(
-            "safari_dev_tool".to_string(),
-            "Open Safari Dev Tool",
-        ))
-        .add_item(CustomMenuItem::new(
-            "install_app".to_string(),
-            "Install App",
-        ))
+        return self.clone().add_native_item(SystemTrayMenuItem::Separator);
+    }
+    fn set_basic_menu(&self) -> SystemTrayMenu {
+        self.clone()
+            .add_item(CustomMenuItem::new("qr_code".to_string(), "Scan QR Code"))
+            .add_item(CustomMenuItem::new(
+                "safari_dev_tool".to_string(),
+                "Open Safari Dev Tool",
+            ))
+            .add_item(CustomMenuItem::new(
+                "install_app".to_string(),
+                "Install App",
+            ))
+    }
 }
 
 // pub fn get_system_tray_menu(app: &App) -> SystemTrayMenu {

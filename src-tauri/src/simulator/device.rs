@@ -20,25 +20,25 @@ impl DeviceMap {
         let devices = self.devices.entry(version.to_string()).or_insert(vec![]);
         devices.push(device);
     }
-    pub fn remove_device(&mut self,version: &str, udid: &str) {
+    pub fn remove_device(&mut self, version: &str, udid: &str) {
         if let Some(devices) = self.devices.get_mut(version) {
             devices.retain(|d| d.udid != udid);
         }
     }
-    pub fn get_device(&self,version: &str, udid: &str) -> Option<&Device> {
-        self.devices.get(version).and_then(|v| {
-            v.iter().find(|d| d.udid == udid)
-        })
+    pub fn get_device(&self, version: &str, udid: &str) -> Option<&Device> {
+        self.devices
+            .get(version)
+            .and_then(|v| v.iter().find(|d| d.udid == udid))
     }
     pub fn get_device_by_udid(&self, udid: &str) -> Option<&Device> {
-        self.devices.values().find_map(|v| {
-            v.iter().find(|d| d.udid == udid)
-        })
+        self.devices
+            .values()
+            .find_map(|v| v.iter().find(|d| d.udid == udid))
     }
     pub fn get_default_device(&self) -> Option<&Device> {
         self.devices.values().next().and_then(|v| {
-          // find name on iPhone 15 Pro
-          v.iter().find(|d| d.name == "iPhone 15 Pro")
+            // find name on iPhone 15 Pro
+            v.iter().find(|d| d.name == "iPhone 15 Pro")
         })
     }
     // default
@@ -73,7 +73,7 @@ pub struct Device {
     pub last_booted_at: Option<String>,
     #[serde(rename = "buildVersion", skip_serializing_if = "Option::is_none")]
     pub log_path_size: Option<u64>,
-    // pub selected: Option<bool>,
+    pub os_version: Option<String>,
 }
 
 impl Device {
@@ -88,7 +88,7 @@ impl Device {
         name: String,
         last_booted_at: Option<String>,
         log_path_size: Option<u64>,
-        // selected: Option<bool>,
+        os_version: Option<String>,
     ) -> Self {
         Self {
             data_path,
@@ -101,7 +101,7 @@ impl Device {
             name,
             last_booted_at,
             log_path_size,
-            // selected: Some(selected.unwrap_or(false)),
+            os_version: os_version,
         }
     }
 }
