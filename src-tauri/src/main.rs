@@ -18,13 +18,14 @@ use tray::tray::{init_system_tray, init_system_tray_menu};
 
 fn main() {
     let app = tauri::Builder::default()
-        .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_store::Builder::default().build()) // store plugin
+        .plugin(tauri_plugin_clipboard::init()) // clipboard plugin
         .plugin(
             tauri_plugin_log::Builder::default()
                 .targets([LogTarget::LogDir, LogTarget::Stdout, LogTarget::Webview])
                 .build(),
-        )
-        .system_tray(init_system_tray())
+        ) // log plugin
+        .system_tray(init_system_tray()) // system tray plugin
         .setup(|app| {
             // remove dock icon
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
@@ -37,11 +38,11 @@ fn main() {
             let _ = app.tray_handle().set_menu(menu);
             Ok(())
         })
-        .on_system_tray_event(on_system_tray_event)
+        .on_system_tray_event(on_system_tray_event) // listen system tray event
         .build(tauri::generate_context!())
         .expect("error while running tauri application");
+    // start tick, to update system tray menu in an infinity loop
     let handle = app.handle().clone();
-    // start tick, to update system tray menu in a loop
     tauri::async_runtime::spawn(async move {
         tick(handle).await;
     });

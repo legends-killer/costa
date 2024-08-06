@@ -13,6 +13,7 @@
     "@tauri-apps/api": "^1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "tauri-plugin-clipboard-api": "^2.1.6",
     "tauri-plugin-store-api": "github:tauri-apps/tauri-plugin-store#v1"
   },
   "devDependencies": {

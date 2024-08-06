@@ -90,7 +90,7 @@ impl CostaTray for SystemTrayMenu {
             CustomMenuItem::new("recent_device".to_string(), "Recent Devices").disabled(),
         );
         for device in devices {
-            debug_println!("{:?} {:?}", device.state, device.udid);
+            // debug_println!("{:?} {:?}", device.state, device.udid);
             let mut menu_item = CustomMenuItem::new(
                 device.udid.clone(),
                 device.name.clone() + "-" + device.os_version.clone().unwrap().as_str(),

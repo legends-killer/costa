@@ -17,6 +17,9 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
+      tauri-plugin-clipboard-api:
+        specifier: ^2.1.6
+        version: 2.1.6(valibot@0.36.0)
       tauri-plugin-store-api:
         specifier: github:tauri-apps/tauri-plugin-store#v1
         version: https://codeload.github.com/tauri-apps/tauri-plugin-store/tar.gz/5f5404feea43b6cddd65e4171f52e92ca161a2aa
@@ -402,6 +405,10 @@ packages:
     resolution: {integrity: sha512-rqI++FWClU5I2UBp4HXFvl+sBWkdigBkxnpJDQUWttNyG7IZP4FwQGhTNL5EOw0vI8i6eSAJ5frLqO7n7jbJdg==}
     engines: {node: '>= 14.6.0', npm: '>= 6.6.0', yarn: '>= 1.19.1'}
 
+  '@tauri-apps/api@2.0.0-beta.11':
+    resolution: {integrity: sha512-wJRY+fBUm3KpqZDHMIz5HRv+1vlnvRJ/dFxiyY3NlINTx2qXqDou5qWYcP1CuZXsd39InWVPV3FAZvno/kGCkA==}
+    engines: {node: '>= 18', npm: '>= 6.6.0', yarn: '>= 1.19.1'}
+
   '@tauri-apps/cli-darwin-arm64@1.5.14':
     resolution: {integrity: sha512-lxoSOp3KKSqzHJa7iT32dukPGMlfsTuja1xXSgwR8o/fqzpYJY7FY/3ZxesP8HR66FcK+vtqa//HNqeOQ0mHkA==}
     engines: {node: '>= 10'}
@@ -642,6 +649,11 @@ packages:
     resolution: {integrity: sha512-QjVjwdXIt408MIiAqCX4oUKsgU2EqAGzs2Ppkm4aQYbjm+ZEWEcW4SfFNTr4uMNZma0ey4f5lgLrkB0aX0QMow==}
     engines: {node: '>=4'}
 
+  tauri-plugin-clipboard-api@2.1.6:
+    resolution: {integrity: sha512-/0NRwk/y2msC86BF0R3baNTd6N6uNbBB+pnilWLL4b4l+z/PcHAyBoLD8gHHRzPLUecPNEAnmkT6ApTWgUGpFA==}
+    peerDependencies:
+      valibot: ^0.36.0
+
   tauri-plugin-store-api@https://codeload.github.com/tauri-apps/tauri-plugin-store/tar.gz/5f5404feea43b6cddd65e4171f52e92ca161a2aa:
     resolution: {tarball: https://codeload.github.com/tauri-apps/tauri-plugin-store/tar.gz/5f5404feea43b6cddd65e4171f52e92ca161a2aa}
     version: 0.0.0
@@ -660,6 +672,9 @@ packages:
     hasBin: true
     peerDependencies:
       browserslist: '>= 4.21.0'
+
+  valibot@0.36.0:
+    resolution: {integrity: sha512-CjF1XN4sUce8sBK9TixrDqFM7RwNkuXdJu174/AwmQUB62QbCQADg5lLe8ldBalFgtj1uKj+pKwDJiNo4Mn+eQ==}
 
   vite@5.2.13:
     resolution: {integrity: sha512-SSq1noJfY9pR3I1TUENL3rQYDQCFqgD+lM6fTRAM8Nv6Lsg5hDLaXkjETVeBt+7vZBCMoibD+6IWnT2mJ+Zb/A==}
@@ -982,6 +997,8 @@ snapshots:
 
   '@tauri-apps/api@1.6.0': {}
 
+  '@tauri-apps/api@2.0.0-beta.11': {}
+
   '@tauri-apps/cli-darwin-arm64@1.5.14':
     optional: true
 
@@ -1218,6 +1235,11 @@ snapshots:
     dependencies:
       has-flag: 3.0.0
 
+  tauri-plugin-clipboard-api@2.1.6(valibot@0.36.0):
+    dependencies:
+      '@tauri-apps/api': 2.0.0-beta.11
+      valibot: 0.36.0
+
   tauri-plugin-store-api@https://codeload.github.com/tauri-apps/tauri-plugin-store/tar.gz/5f5404feea43b6cddd65e4171f52e92ca161a2aa:
     dependencies:
       '@tauri-apps/api': 1.6.0
@@ -1231,6 +1253,8 @@ snapshots:
       browserslist: 4.23.1
       escalade: 3.1.2
       picocolors: 1.0.1
+
+  valibot@0.36.0: {}
 
   vite@5.2.13:
     dependencies:
