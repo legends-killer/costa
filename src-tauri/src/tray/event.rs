@@ -5,10 +5,13 @@ use tauri::{AppHandle, Manager, SystemTrayEvent};
 use tauri_plugin_clipboard::ClipboardManager;
 
 use crate::{
+    clipboard::{ClipboardContent, ClipboardType},
     simulator::command::{boot_device, get_all_devices, open_simulator_app},
-    sotre::{get_tauri_store, set_tauri_store},
+    sotre::{get_tauri_store, set_tauri_store, update_tauri_store},
     tray::operation::OperationId,
 };
+
+use crate::window::costa_window::{create_download_app_window, create_url_edit_window};
 
 pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
     match event {
@@ -16,13 +19,33 @@ pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
             let item_handle = app_handle.tray_handle().get_item(&id);
             dbg!(&id);
             match OperationId::from(id.to_owned()) {
-                OperationId::InstallApp => {}
+                OperationId::InstallApp => {
+                    if let Err(e) = create_download_app_window(app_handle) {
+                        debug_print!("Open Window Error: {:?}", e);
+                        log::error!("Open Window Error: {:?}", e);
+                        return;
+                    }
+                }
                 OperationId::Quit => app_handle.exit(0),
                 OperationId::Safari => {}
                 OperationId::QrCode => {
-                    if let Err(err) = read_clipboard(app_handle) {
-                        debug_print!("QR Code Read Error: {:?}", err);
+                    let clipboard_result = read_clipboard(app_handle);
+                    if let Err(e) = clipboard_result {
+                        debug_print!("QR Code Read Error: {:?}", e);
+                        return;
                     }
+                    // TODO: set the clipboard content to the store
+                    let _ = update_tauri_store(
+                        app_handle,
+                        crate::sotre::StoreKey::ClipboardContent,
+                        clipboard_result.unwrap().into(),
+                    );
+                    if let Err(e) = create_url_edit_window(app_handle) {
+                        debug_print!("Open Window Error: {:?}", e);
+                        log::error!("Open Window Error: {:?}", e);
+                        return;
+                    }
+                    // TODO: jump to the page that the QR code represents
                 }
                 s => {
                     // let store: State<CostaStore> = app_handle.state();
@@ -60,14 +83,18 @@ pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
     }
 }
 
-fn read_clipboard(app_handle: &AppHandle) -> Result<(), DeQRError> {
+fn read_clipboard(app_handle: &AppHandle) -> Result<ClipboardContent, DeQRError> {
     let handle = app_handle.clone();
     let clipboard = handle.state::<ClipboardManager>();
     // text consider as a url
     if let Ok(has_text) = clipboard.has_text() {
         if has_text {
             let text = clipboard.read_text();
-            dbg!(text);
+            debug_println!("Clipboard Text: {:?}", text);
+            return Ok(ClipboardContent {
+                content: text.unwrap(),
+                clipboard_type: ClipboardType::Text,
+            });
         }
     }
     // image consider as a qr code
@@ -87,7 +114,11 @@ fn read_clipboard(app_handle: &AppHandle) -> Result<(), DeQRError> {
             let (meta, content) = grids[0].decode()?;
             debug_println!("QR Code Meta: {:?}", meta);
             debug_println!("QR Code Content: {:?}", content);
+            return Ok(ClipboardContent {
+                content,
+                clipboard_type: ClipboardType::Image,
+            });
         }
     }
-    Ok(())
+    Err(DeQRError::UnknownDataType)
 }

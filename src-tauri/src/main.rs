@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod clipboard;
+mod command;
 mod constant;
 mod file;
 mod path;
@@ -8,8 +10,11 @@ mod simulator;
 mod sotre;
 mod tick;
 mod tray;
+mod window;
 
+use command::handler::assamble_handler;
 use file::check_file_if_exists;
+use log::LevelFilter;
 use path::get_sotre_path;
 use tauri_plugin_log::LogTarget;
 use tick::tick;
@@ -17,12 +22,16 @@ use tray::event::on_system_tray_event;
 use tray::tray::{init_system_tray, init_system_tray_menu};
 
 fn main() {
-    let app = tauri::Builder::default()
+    // init app
+    let mut app_builder = tauri::Builder::default();
+    app_builder = assamble_handler(app_builder); // assemble command handler
+    let app = app_builder
         .plugin(tauri_plugin_store::Builder::default().build()) // store plugin
         .plugin(tauri_plugin_clipboard::init()) // clipboard plugin
         .plugin(
             tauri_plugin_log::Builder::default()
                 .targets([LogTarget::LogDir, LogTarget::Stdout, LogTarget::Webview])
+                .level(LevelFilter::Info)
                 .build(),
         ) // log plugin
         .system_tray(init_system_tray()) // system tray plugin

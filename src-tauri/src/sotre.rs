@@ -7,11 +7,7 @@ use tauri::{App, AppHandle, EventLoopMessage, Manager, SystemTrayMenu};
 use tauri_plugin_store::{self, Store, StoreBuilder, StoreCollection};
 
 use crate::{
-    constant::APP_NAME,
-    file::check_file_if_exists,
-    path::{get_app_data_dir, get_sotre_path},
-    simulator::{command::get_all_devices, device::DeviceMap},
-    tray::menu::TrayMenu,
+    clipboard::ClipboardContent, constant::APP_NAME, file::check_file_if_exists, path::{get_app_data_dir, get_sotre_path}, simulator::{command::get_all_devices, device::DeviceMap}, tray::menu::TrayMenu
 };
 use tauri::Wry;
 use tauri_plugin_store::with_store;
@@ -20,6 +16,7 @@ pub enum StoreKey {
     Simulator,
     Tray,
     RecentDevices,
+    ClipboardContent,
 }
 
 impl StoreKey {
@@ -28,6 +25,7 @@ impl StoreKey {
             &StoreKey::Simulator => "simulator".to_owned(),
             &StoreKey::Tray => "tray".to_owned(),
             &StoreKey::RecentDevices => "recent_devices".to_owned(),
+            &StoreKey::ClipboardContent => "clipboard_content".to_owned(),
         }
     }
 }
@@ -37,6 +35,8 @@ pub struct CostaStoreWrapper {
     pub simulator: DeviceMap,
     pub tray: TrayMenu,
     pub recent_devices: Vec<String>,
+    // new store item must be Optional to avoid breaking the existing store
+    pub clipboard_content: Option<ClipboardContent>,
 }
 
 // pub struct CostaStore {
@@ -69,6 +69,10 @@ impl CostaStoreWrapper {
             }
             StoreKey::RecentDevices => {
                 self.recent_devices = serde_json::from_value(value)?;
+                Ok(())
+            }
+            StoreKey::ClipboardContent => {
+                self.clipboard_content = serde_json::from_value(value)?;
                 Ok(())
             }
             _ => Err(Box::new(std::io::Error::new(
@@ -132,6 +136,7 @@ pub fn init_tauri_store<T: Into<AppHandleRef>>(app: T) {
             simulator: get_all_devices(),
         },
         recent_devices: vec![],
+        clipboard_content: None,
     };
     store
         .insert(APP_NAME.to_string(), json!(store_content))
@@ -179,4 +184,33 @@ pub fn set_tauri_store<T: Into<AppHandleRef>>(app: T, new_store: CostaStoreWrapp
         store.save();
         Ok(())
     });
+}
+
+pub fn update_tauri_store<T: Into<AppHandleRef>>(
+    app: T,
+    key: StoreKey,
+    value: serde_json::Value,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let app_handle_ref: AppHandleRef = app.into();
+    // Extract the AppHandle from AppHandleRef before calling state
+    let app_handle = match app_handle_ref {
+        AppHandleRef::App(app_handle) => app_handle,
+        AppHandleRef::AppHandle(app_handle) => app_handle,
+    };
+    let stores = app_handle.state::<StoreCollection<Wry>>();
+    let path = get_sotre_path();
+
+    Ok(with_store(app_handle.clone(), stores, path, |store| {
+        let mut store_content = store
+            .get(APP_NAME.to_string())
+            .cloned()
+            .map(|value| serde_json::from_value::<CostaStoreWrapper>(value).unwrap())
+            .unwrap();
+        store_content.set(key, value).unwrap();
+        store
+            .insert(APP_NAME.to_string(), json!(store_content))
+            .unwrap();
+        store.save();
+        Ok(())
+    })?)
 }

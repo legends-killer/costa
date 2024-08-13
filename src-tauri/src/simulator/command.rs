@@ -1,3 +1,6 @@
+/**
+ * This module is used to execute the command of the simulator
+ */
 use debug_print::debug_println;
 
 use super::device::{Device, DeviceMap};

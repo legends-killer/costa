@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
 import "./App.css";
+import { Store } from "tauri-plugin-store-api";
 
 function App() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
+  const store = new Store("costa");
+  (window as any).__STORE__ = store;
+  // console.log(, 'store')
 
   async function greet() {
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
