@@ -11,6 +11,7 @@ mod sotre;
 mod tick;
 mod tray;
 mod window;
+mod host;
 
 use command::handler::assamble_handler;
 use file::check_file_if_exists;

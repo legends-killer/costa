@@ -7,6 +7,7 @@ use tauri::{
 };
 
 use crate::{
+    host::host::Host,
     simulator::{
         self,
         command::{boot_device, get_all_devices, open_simulator_app},
@@ -15,6 +16,8 @@ use crate::{
     sotre::{get_tauri_store, set_tauri_store, AppHandleRef, StoreKey},
     tray::menu::{self, TrayMenu},
 };
+
+use super::operation::OperationId;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TrayItem {
@@ -48,10 +51,14 @@ pub fn init_system_tray_menu(app: Option<&App>, handle: Option<AppHandle>) -> Sy
                 .unwrap()
         })
         .collect();
+    let hosts = menu_state.debug_hosts;
+    debug_println!("Hosts: {:?}", hosts);
 
     SystemTrayMenu::new()
         .set_devices(&simulators.simulator)
         .set_recent_devices(&recent_devices)
+        .set_debug_hosts(&hosts)
+        .set_operation_menu()
         .set_basic_menu()
 }
 
@@ -59,6 +66,8 @@ pub trait CostaTray {
     fn set_devices(&self, devices: &simulator::device::DeviceMap) -> SystemTrayMenu;
     fn set_recent_devices(self, devices: &Vec<&simulator::device::Device>) -> SystemTrayMenu;
     fn set_basic_menu(&self) -> SystemTrayMenu;
+    fn set_operation_menu(&self) -> SystemTrayMenu;
+    fn set_debug_hosts(self, hosts: &Option<Host>) -> SystemTrayMenu;
 }
 
 impl CostaTray for SystemTrayMenu {
@@ -68,7 +77,7 @@ impl CostaTray for SystemTrayMenu {
             for (version, devices) in devices.devices.iter() {
                 for device in devices {
                     let mut menu_item = CustomMenuItem::new(
-                        device.udid.clone(),
+                        OperationId::OpenSimulator.to_string() + device.udid.clone().as_str(),
                         device.name.clone() + "-" + device.os_version.clone().unwrap().as_str(),
                     );
                     if (device.state == "Booted") {
@@ -102,17 +111,71 @@ impl CostaTray for SystemTrayMenu {
         }
         return self.clone().add_native_item(SystemTrayMenuItem::Separator);
     }
+    fn set_debug_hosts(mut self, hosts: &Option<Host>) -> SystemTrayMenu {
+        if let Some(hosts) = hosts {
+            let sub_menu_hosts = {
+                let mut menu = SystemTrayMenu::new();
+                for (title, url) in hosts.host_map.iter() {
+                    let mut menu_item = CustomMenuItem::new(
+                        OperationId::SelectHost.to_string() + url,
+                        title.clone(),
+                    );
+                    if hosts.selected_host != None {
+                        if url == hosts.selected_host.as_ref().unwrap().as_str() {
+                            menu_item = menu_item.selected();
+                        }
+                    }
+                    menu = menu.add_item(menu_item);
+                }
+                SystemTraySubmenu::new("Hosts", menu)
+            };
+            return self
+                .clone()
+                // .add_item(CustomMenuItem::new(
+                //     "selected_host".to_string(),
+                //     hosts.selected_host.clone(),
+                // ))
+                .add_submenu(sub_menu_hosts)
+                .add_native_item(SystemTrayMenuItem::Separator);
+        } else {
+            return self
+                .clone()
+                .add_item(
+                    CustomMenuItem::new("debug_host".to_string(), "Debug Host Not Found")
+                        .disabled(),
+                )
+                .add_native_item(SystemTrayMenuItem::Separator);
+        }
+    }
     fn set_basic_menu(&self) -> SystemTrayMenu {
         self.clone()
-            .add_item(CustomMenuItem::new("qr_code".to_string(), "Scan QR Code"))
+            .add_item(CustomMenuItem::new(OperationId::QrCode, "Scan QR Code"))
             .add_item(CustomMenuItem::new(
-                "safari_dev_tool".to_string(),
+                OperationId::Safari,
                 "Open Safari Dev Tool",
             ))
+            .add_item(CustomMenuItem::new(OperationId::InstallApp, "Install App"))
+            .add_item(CustomMenuItem::new(OperationId::Quit, "Quit"))
+    }
+    fn set_operation_menu(&self) -> SystemTrayMenu {
+        self.clone()
+            .add_item(CustomMenuItem::new(OperationId::RouteBack, "Route Back"))
             .add_item(CustomMenuItem::new(
-                "install_app".to_string(),
-                "Install App",
+                OperationId::RouteForward,
+                "Route Forward",
             ))
-            .add_item(CustomMenuItem::new("quit".to_string(), "Quit"))
+            .add_item(CustomMenuItem::new(
+                OperationId::RouteRefresh,
+                "Route Refresh",
+            ))
+            .add_item(CustomMenuItem::new(OperationId::SetBOE, "Set BOE"))
+            .add_item(CustomMenuItem::new(OperationId::SetPPE, "Set PPE"))
+            .add_item(CustomMenuItem::new(OperationId::Login, "Login"))
+            .add_item(CustomMenuItem::new(OperationId::Logout, "Logout"))
+            .add_item(CustomMenuItem::new(
+                OperationId::DebugMenu,
+                "Open Debug Menu",
+            ))
+            .add_native_item(SystemTrayMenuItem::Separator)
     }
 }

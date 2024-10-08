@@ -7,16 +7,24 @@ use tauri::{App, AppHandle, EventLoopMessage, Manager, SystemTrayMenu};
 use tauri_plugin_store::{self, Store, StoreBuilder, StoreCollection};
 
 use crate::{
-    clipboard::ClipboardContent, constant::APP_NAME, file::check_file_if_exists, path::{get_app_data_dir, get_sotre_path}, simulator::{command::get_all_devices, device::DeviceMap}, tray::menu::TrayMenu
+    clipboard::ClipboardContent, constant::APP_NAME, file::check_file_if_exists, host::host::Host, path::{get_app_data_dir, get_sotre_path}, simulator::{command::get_all_devices, device::DeviceMap}, tray::menu::TrayMenu
 };
 use tauri::Wry;
 use tauri_plugin_store::with_store;
 
 pub enum StoreKey {
+    /** iOS simulator */
     Simulator,
+    /** system tray */
     Tray,
+    /** recent used devices list */
     RecentDevices,
+    /** current clipboard content */
     ClipboardContent,
+    /** recent used debug url list */
+    RecentUrls,
+    /** debug app host */
+    DebugHosts,
 }
 
 impl StoreKey {
@@ -26,6 +34,8 @@ impl StoreKey {
             &StoreKey::Tray => "tray".to_owned(),
             &StoreKey::RecentDevices => "recent_devices".to_owned(),
             &StoreKey::ClipboardContent => "clipboard_content".to_owned(),
+            &StoreKey::RecentUrls => "recent_urls".to_owned(),
+            &StoreKey::DebugHosts => "debug_hosts".to_owned(),
         }
     }
 }
@@ -37,11 +47,9 @@ pub struct CostaStoreWrapper {
     pub recent_devices: Vec<String>,
     // new store item must be Optional to avoid breaking the existing store
     pub clipboard_content: Option<ClipboardContent>,
+    pub recent_urls: Option<Vec<String>>,
+    pub debug_hosts: Option<Host>,
 }
-
-// pub struct CostaStore {
-//     pub store: Mutex<CostaStoreWrapper>,
-// }
 
 impl CostaStoreWrapper {
     // impl getter function
@@ -49,6 +57,10 @@ impl CostaStoreWrapper {
         match key {
             StoreKey::Simulator => Some(json!(&self.simulator)),
             StoreKey::Tray => Some(json!(&self.tray)),
+            StoreKey::RecentDevices => Some(json!(&self.recent_devices)),
+            StoreKey::ClipboardContent => self.clipboard_content.as_ref().map(|v| json!(v)),
+            StoreKey::RecentUrls => self.recent_urls.as_ref().map(|v| json!(v)),
+            StoreKey::DebugHosts => self.debug_hosts.as_ref().map(|v| json!(v)),
             _ => None,
         }
     }
@@ -73,6 +85,14 @@ impl CostaStoreWrapper {
             }
             StoreKey::ClipboardContent => {
                 self.clipboard_content = serde_json::from_value(value)?;
+                Ok(())
+            }
+            StoreKey::RecentUrls => {
+                self.recent_urls = serde_json::from_value(value)?;
+                Ok(())
+            }
+            StoreKey::DebugHosts => {
+                self.debug_hosts = serde_json::from_value(value)?;
                 Ok(())
             }
             _ => Err(Box::new(std::io::Error::new(
@@ -137,6 +157,8 @@ pub fn init_tauri_store<T: Into<AppHandleRef>>(app: T) {
         },
         recent_devices: vec![],
         clipboard_content: None,
+        recent_urls: None,
+        debug_hosts: None,
     };
     store
         .insert(APP_NAME.to_string(), json!(store_content))
@@ -210,7 +232,7 @@ pub fn update_tauri_store<T: Into<AppHandleRef>>(
         store
             .insert(APP_NAME.to_string(), json!(store_content))
             .unwrap();
-        store.save();
+        store.save()?;
         Ok(())
     })?)
 }
