@@ -34,7 +34,7 @@ pub fn init_system_tray_menu(app: Option<&App>, handle: Option<AppHandle>) -> Sy
     if (app.is_none() && handle.is_none()) {
         return SystemTrayMenu::new();
     }
-    let mut simulators = TrayMenu {
+    let simulators = TrayMenu {
         simulator: get_all_devices(),
     };
     let store = get_tauri_store(handle.clone().unwrap());
@@ -52,7 +52,7 @@ pub fn init_system_tray_menu(app: Option<&App>, handle: Option<AppHandle>) -> Sy
         })
         .collect();
     let hosts = menu_state.debug_hosts;
-    debug_println!("Hosts: {:?}", hosts);
+    // debug_println!("Hosts: {:?}", hosts);
 
     SystemTrayMenu::new()
         .set_devices(&simulators.simulator)
@@ -113,6 +113,17 @@ impl CostaTray for SystemTrayMenu {
     }
     fn set_debug_hosts(mut self, hosts: &Option<Host>) -> SystemTrayMenu {
         if let Some(hosts) = hosts {
+            // if hosts map is empty, return a prompt
+            if hosts.get_host_map().is_empty() {
+                return self
+                    .clone()
+                    .add_item(
+                        CustomMenuItem::new("debug_host".to_string(), "Debug Host Not Found")
+                            .disabled(),
+                    )
+                    .add_native_item(SystemTrayMenuItem::Separator);
+            }
+            // else if hosts map is not empty, return a submenu
             let sub_menu_hosts = {
                 let mut menu = SystemTrayMenu::new();
                 for (title, url) in hosts.host_map.iter() {
@@ -127,17 +138,14 @@ impl CostaTray for SystemTrayMenu {
                     }
                     menu = menu.add_item(menu_item);
                 }
-                SystemTraySubmenu::new("Hosts", menu)
+                SystemTraySubmenu::new("Debug Host", menu)
             };
             return self
                 .clone()
-                // .add_item(CustomMenuItem::new(
-                //     "selected_host".to_string(),
-                //     hosts.selected_host.clone(),
-                // ))
                 .add_submenu(sub_menu_hosts)
                 .add_native_item(SystemTrayMenuItem::Separator);
         } else {
+            // hosts is None, return a prompt
             return self
                 .clone()
                 .add_item(

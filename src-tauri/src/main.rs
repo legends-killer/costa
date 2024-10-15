@@ -17,6 +17,8 @@ use command::handler::assamble_handler;
 use file::check_file_if_exists;
 use log::LevelFilter;
 use path::get_sotre_path;
+use sotre::{set_tauri_store, setup_tauri_store};
+use tauri::Manager;
 use tauri_plugin_log::LogTarget;
 use tick::tick;
 use tray::event::on_system_tray_event;
@@ -27,7 +29,7 @@ fn main() {
     let mut app_builder = tauri::Builder::default();
     app_builder = assamble_handler(app_builder); // assemble command handler
     let app = app_builder
-        .plugin(tauri_plugin_store::Builder::default().build()) // store plugin
+        .plugin(tauri_plugin_store::Builder::default().build())// store plugin
         .plugin(tauri_plugin_clipboard::init()) // clipboard plugin
         .plugin(
             tauri_plugin_log::Builder::default()
@@ -39,10 +41,12 @@ fn main() {
         .setup(|app| {
             // remove dock icon
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
-            // init store
+            // init store if not exists
             if !check_file_if_exists(get_sotre_path()) {
                 sotre::init_tauri_store(app.handle().clone());
             }
+            // setup tauri store
+            setup_tauri_store(app.handle().clone());
             // init tray menu
             let menu = init_system_tray_menu(Some(&app), Some(app.handle().clone()));
             let _ = app.tray_handle().set_menu(menu);

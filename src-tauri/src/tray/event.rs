@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use debug_print::{debug_print, debug_println};
 use image;
 use log::info;
@@ -19,7 +21,7 @@ use reqwest::Client;
 use crate::window::costa_window::{create_download_app_window, create_url_edit_window};
 
 pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
-    let client = Client::new();
+    let client = Client::builder().timeout(Duration::from_secs(3)).build().unwrap();
     match event {
         SystemTrayEvent::MenuItemClick { id, .. } => {
             let item_handle = app_handle.tray_handle().get_item(&id);
@@ -71,13 +73,18 @@ pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
                 OperationId::RouteForward => {}
                 // send route refresh operation to the simulator
                 OperationId::RouteRefresh => {}
+                // 
                 OperationId::SetBOE => {
                     // let handle = app_handle.clone();
                     costa_window::create_env_edit_window(app_handle, costa_window::EnvName::BOE);
                 }
+                // set the PPE environment
                 OperationId::SetPPE => {}
+                // login to the host
                 OperationId::Login => {}
+                // logout from the host
                 OperationId::Logout => {}
+                // open the debug menu
                 OperationId::DebugMenu => {
                     let client = client.clone();
                     let url = "http://localhost:9081/costa";

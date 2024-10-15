@@ -9,6 +9,8 @@ pub enum EnvName {
     BOE,
     #[strum(to_string = "ppe")]
     PPE,
+    #[strum(to_string = "online")]
+    ONLINE,
 }
 
 impl From<EnvName> for String {
@@ -22,7 +24,8 @@ impl From<String> for EnvName {
         match id.as_str() {
             "boe" => EnvName::BOE,
             "ppe" => EnvName::PPE,
-            _ => EnvName::BOE,
+            "online" => EnvName::ONLINE,
+            _ => EnvName::ONLINE,
         }
     }
 }

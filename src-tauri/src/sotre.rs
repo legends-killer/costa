@@ -7,7 +7,13 @@ use tauri::{App, AppHandle, EventLoopMessage, Manager, SystemTrayMenu};
 use tauri_plugin_store::{self, Store, StoreBuilder, StoreCollection};
 
 use crate::{
-    clipboard::ClipboardContent, constant::APP_NAME, file::check_file_if_exists, host::host::Host, path::{get_app_data_dir, get_sotre_path}, simulator::{command::get_all_devices, device::DeviceMap}, tray::menu::TrayMenu
+    clipboard::ClipboardContent,
+    constant::APP_NAME,
+    file::check_file_if_exists,
+    host::host::Host,
+    path::{get_app_data_dir, get_sotre_path},
+    simulator::{command::get_all_devices, device::DeviceMap},
+    tray::menu::TrayMenu,
 };
 use tauri::Wry;
 use tauri_plugin_store::with_store;
@@ -142,6 +148,9 @@ impl Into<AppHandle> for AppHandleRef {
     }
 }
 
+/**
+ * Init tauri store if not exists
+ */
 pub fn init_tauri_store<T: Into<AppHandleRef>>(app: T) {
     let app_handle_ref: AppHandleRef = app.into();
     // Extract the AppHandle from AppHandleRef before calling state
@@ -165,6 +174,23 @@ pub fn init_tauri_store<T: Into<AppHandleRef>>(app: T) {
         .unwrap();
     store.save();
     // app.manage(store);
+}
+
+/**
+ * Setup tauri store when app is ready
+ */
+pub fn setup_tauri_store<T: Into<AppHandleRef>>(app: T) {
+    let app_handle_ref: AppHandleRef = app.into();
+    // Extract the AppHandle from AppHandleRef before calling state
+    let app_handle = match app_handle_ref {
+        AppHandleRef::App(app_handle) => app_handle,
+        AppHandleRef::AppHandle(app_handle) => app_handle,
+    };
+    let _result = update_tauri_store(
+        app_handle.clone(),
+        StoreKey::DebugHosts,
+        json!(Host::default()),
+    );
 }
 
 pub fn get_tauri_store<T: Into<AppHandleRef>>(app: T) -> std::option::Option<CostaStoreWrapper> {
