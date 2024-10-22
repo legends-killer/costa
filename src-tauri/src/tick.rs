@@ -15,12 +15,12 @@ use crate::{
     tray::tray::init_system_tray_menu,
 };
 
-pub async fn tick(handle: AppHandle) {
+pub async fn tick(handle: AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let mut interval = tokio::time::interval(std::time::Duration::from_millis(500));
     loop {
+        let meun_update_result = process_tray_menu_update(handle.clone());
         interval.tick().await;
         let host_scanner_result = process_host_scanner(handle.clone()).await;
-        let meun_update_result = process_tray_menu_update(handle.clone());
     }
 }
 

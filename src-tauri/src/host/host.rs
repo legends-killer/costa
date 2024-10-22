@@ -1,10 +1,13 @@
 use debug_print::debug_println;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{json, Value};
 
-use crate::{constant::DEFAULT_HOST, tray::operation::OperationId};
-use std::{collections::HashMap, time::Duration};
+use crate::{
+    constant::{DEFAULT_HOST, DEFAULT_PATH},
+    tray::operation::OperationId,
+};
 use reqwest::Client;
+use std::{collections::HashMap, time::Duration};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Host {
@@ -43,36 +46,94 @@ impl From<Host> for serde_json::Value {
 }
 
 pub trait HostOperation {
-    async fn exec_operation(&self, operation: OperationId, params: Option<serde_json::Value>);
+    fn exec_operation(&self, operation: OperationId, params: serde_json::Value);
 }
 
 impl HostOperation for Host {
-    async fn exec_operation(&self, operation: OperationId, params: Option<serde_json::Value>) {
-        let client = Client::builder().timeout(Duration::from_secs(3)).build().unwrap();
+    fn exec_operation(&self, operation: OperationId, params: serde_json::Value) {
+        let client = Client::builder()
+            .timeout(Duration::from_secs(1))
+            .build()
+            .unwrap();
+        debug_println!("exec operation: {:?}", operation);
         match operation {
             OperationId::None => todo!(),
-            OperationId::QrCode => todo!(),
+            OperationId::ClipboardSchema => {
+                debug_println!("selected host: {:?}", self.selected_host);
+                let client = client.clone();
+                let schema_str = String::from(params["value"].as_str().unwrap());
+                println!("schema: {:?}", schema_str);
+                let url = format!(
+                    "{}{}/routeSwitch",
+                    self.selected_host.as_ref().unwrap(),
+                    DEFAULT_PATH
+                );
+                tauri::async_runtime::spawn(async move {
+                    let res = client.post(url).body(schema_str).send().await;
+                    debug_println!("{:?}", res);
+                });
+            }
             OperationId::Safari => todo!(),
             OperationId::InstallApp => todo!(),
             OperationId::Quit => todo!(),
             OperationId::OpenSimulator => todo!(),
             OperationId::SelectHost => todo!(),
-            OperationId::RouteBack => todo!(),
+            OperationId::RouteBack => {
+                debug_println!("route back operation: {:?}", params);
+                let client = client.clone();
+                let url = format!(
+                    "{}{}/routeVCOperation",
+                    self.selected_host.as_ref().unwrap(),
+                    DEFAULT_PATH
+                );
+                let operation = String::from(params["value"].as_str().unwrap());
+                tauri::async_runtime::spawn(async move {
+                    let res = client.post(url).body(operation).send().await;
+                    debug_println!("{:?}", res);
+                });
+            }
             OperationId::RouteForward => todo!(),
             OperationId::RouteRefresh => todo!(),
-            OperationId::SetPPE => todo!(),
-            OperationId::SetBOE => todo!(),
+            OperationId::SetEnv => {
+                let client = client.clone();
+                let url = format!(
+                    "{}{}/setEnv",
+                    self.selected_host.as_ref().unwrap(),
+                    DEFAULT_PATH
+                );
+                let set_env_params: SetEnvParams = serde_json::from_value(params["value"].clone()).unwrap();
+                debug_println!("{:?}", set_env_params);
+                tauri::async_runtime::spawn(async move {
+                    let res = client.post(url).json(&set_env_params).send().await;
+                    debug_println!("{:?}", res);
+                });
+            }
             OperationId::Login => todo!(),
             OperationId::Logout => todo!(),
             OperationId::DebugMenu => {
                 let client = client.clone();
-                let url = format!("http://{}/costa/routeSwitch", self.selected_host.as_ref().unwrap());
+                let url = format!(
+                    "{}{}/routeSwitch",
+                    self.selected_host.as_ref().unwrap(),
+                    DEFAULT_PATH
+                );
                 let body_json = json!({});
                 tauri::async_runtime::spawn(async move {
                     let res = client.post(url).body("sslocal://debug").send().await;
                     debug_println!("{:?}", res);
                 });
-            },
+            }
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SetEnvParams {
+    #[serde(rename = "envType")]
+    pub env_type: String,
+    #[serde(rename = "isOn")]
+    pub is_on: bool,
+    pub name: String,
+    #[serde(rename = "geckoOnline")]
+    pub gecko_online: bool,
 }

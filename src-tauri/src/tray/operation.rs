@@ -4,8 +4,8 @@ use strum_macros::{Display, EnumString};
 pub enum OperationId {
     #[strum(to_string = "none")]
     None,
-    #[strum(to_string = "qr_code")]
-    QrCode,
+    #[strum(to_string = "clipboard_schema")]
+    ClipboardSchema,
     #[strum(to_string = "safari_dev_tool")]
     Safari,
     #[strum(to_string = "install_app")]
@@ -22,10 +22,8 @@ pub enum OperationId {
     RouteForward,
     #[strum(to_string = "op_route_refresh")]
     RouteRefresh,
-    #[strum(to_string = "op_set_ppe")]
-    SetPPE,
-    #[strum(to_string = "op_set_boe")]
-    SetBOE,
+    #[strum(to_string = "op_set_env")]
+    SetEnv,
     #[strum(to_string = "op_login")]
     Login,
     #[strum(to_string = "op_logout")]
@@ -43,7 +41,7 @@ impl From<OperationId> for String {
 impl From<String> for OperationId {
     fn from(id: String) -> Self {
         match id.as_str() {
-            "qr_code" => OperationId::QrCode,
+            "clipboard_schema" => OperationId::ClipboardSchema,
             "safari_dev_tool" => OperationId::Safari,
             "install_app" => OperationId::InstallApp,
             "quit" => OperationId::Quit,
@@ -65,8 +63,7 @@ impl From<String> for OperationId {
             "op_route_back" => OperationId::RouteBack,
             "op_route_forward" => OperationId::RouteForward,
             "op_route_refresh" => OperationId::RouteRefresh,
-            "op_set_ppe" => OperationId::SetPPE,
-            "op_set_boe" => OperationId::SetBOE,
+            "op_set_env" => OperationId::SetEnv,
             "op_login" => OperationId::Login,
             "op_logout" => OperationId::Logout,
             "op_debug_menu" => OperationId::DebugMenu,

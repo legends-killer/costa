@@ -9,11 +9,7 @@ use tauri::{AppHandle, Manager, SystemTrayEvent};
 use tauri_plugin_clipboard::ClipboardManager;
 
 use crate::{
-    clipboard::{ClipboardContent, ClipboardType},
-    simulator::command::{boot_device, get_all_devices, open_safari_dev_tool, open_simulator_app},
-    sotre::{get_tauri_store, set_tauri_store, update_tauri_store},
-    tray::operation::OperationId,
-    window::costa_window,
+    clipboard::{ClipboardContent, ClipboardType}, constant::{DEFAULT_HOST, DEFAULT_PATH}, constant_local::APP_DOWNLOAD_URL, host::host::HostOperation, simulator::command::{boot_device, get_all_devices, open_safari_dev_tool, open_simulator_app}, sotre::{get_tauri_store, set_tauri_store, update_tauri_store}, tray::operation::OperationId, window::costa_window
 };
 
 use reqwest::Client;
@@ -21,7 +17,10 @@ use reqwest::Client;
 use crate::window::costa_window::{create_download_app_window, create_url_edit_window};
 
 pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
-    let client = Client::builder().timeout(Duration::from_secs(3)).build().unwrap();
+    let client = Client::builder()
+        .timeout(Duration::from_secs(1))
+        .build()
+        .unwrap();
     match event {
         SystemTrayEvent::MenuItemClick { id, .. } => {
             let item_handle = app_handle.tray_handle().get_item(&id);
@@ -29,18 +28,25 @@ pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
             match OperationId::from(id.to_owned()) {
                 // open the download app window
                 OperationId::InstallApp => {
-                    if let Err(e) = create_download_app_window(app_handle) {
-                        debug_print!("Open Window Error: {:?}", e);
-                        log::error!("Open Window Error: {:?}", e);
-                        return;
-                    }
+                    // if let Err(e) = create_download_app_window(app_handle) {
+                    //     debug_print!("Open Window Error: {:?}", e);
+                    //     log::error!("Open Window Error: {:?}", e);
+                    //     return;
+                    // }
+                    // just open a url in browser
+                    let url = APP_DOWNLOAD_URL;
+                    let output = std::process::Command::new("open")
+                        .arg(url)
+                        .output()
+                        .expect("failed to execute process");
+                    let output = String::from_utf8(output.stdout).unwrap();
                 }
                 // quit the app
                 OperationId::Quit => app_handle.exit(0),
                 // open Safari developer tools
                 OperationId::Safari => open_safari_dev_tool("", None),
                 // scan QR code in clipboard & open the url edit window
-                OperationId::QrCode => {
+                OperationId::ClipboardSchema => {
                     let clipboard_result = read_clipboard(app_handle);
                     if let Err(e) = clipboard_result {
                         debug_print!("QR Code Read Error: {:?}", e);
@@ -61,38 +67,41 @@ pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
                 }
                 // send route back operation to the simulator
                 OperationId::RouteBack => {
-                    let client = client.clone();
-                    let url = "http://localhost:9081/costa";
-                    let body_json = json!({});
-                    tauri::async_runtime::spawn(async move {
-                        let res = client.post(url).body("route_back").send().await;
-                        debug_println!("{:?}", res);
-                    });
+                    let host_agent = get_tauri_store(app_handle.clone())
+                        .unwrap()
+                        .debug_hosts
+                        .unwrap();
+                    host_agent.exec_operation(OperationId::RouteBack, json!({"value": id.clone()}));
                 }
                 // send route forward operation to the simulator
                 OperationId::RouteForward => {}
                 // send route refresh operation to the simulator
                 OperationId::RouteRefresh => {}
-                // 
-                OperationId::SetBOE => {
-                    // let handle = app_handle.clone();
-                    costa_window::create_env_edit_window(app_handle, costa_window::EnvName::BOE);
+                // setEnv
+                OperationId::SetEnv => {
+                    let clipboard_result = read_clipboard(app_handle);
+                    if let Err(e) = clipboard_result {
+                        debug_print!("QR Code Read Error: {:?}", e);
+                        return;
+                    };
+                    let _ = update_tauri_store(
+                        app_handle,
+                        crate::sotre::StoreKey::ClipboardContent,
+                        clipboard_result.unwrap().into(),
+                    );
+                    costa_window::create_env_edit_window(app_handle);
                 }
-                // set the PPE environment
-                OperationId::SetPPE => {}
                 // login to the host
                 OperationId::Login => {}
                 // logout from the host
                 OperationId::Logout => {}
                 // open the debug menu
                 OperationId::DebugMenu => {
-                    let client = client.clone();
-                    let url = "http://localhost:9081/costa";
-                    let body_json = json!({});
-                    tauri::async_runtime::spawn(async move {
-                        let res = client.post(url).body("sslocal://debug").send().await;
-                        debug_println!("{:?}", res);
-                    });
+                    let host_agent = get_tauri_store(app_handle.clone())
+                        .unwrap()
+                        .debug_hosts
+                        .unwrap();
+                    host_agent.exec_operation(OperationId::DebugMenu, json!({}));
                 }
                 // open the simulator app
                 OperationId::OpenSimulator => {

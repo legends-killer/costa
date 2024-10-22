@@ -64,9 +64,9 @@ impl CostaStoreWrapper {
             StoreKey::Simulator => Some(json!(&self.simulator)),
             StoreKey::Tray => Some(json!(&self.tray)),
             StoreKey::RecentDevices => Some(json!(&self.recent_devices)),
-            StoreKey::ClipboardContent => self.clipboard_content.as_ref().map(|v| json!(v)),
+            StoreKey::ClipboardContent => Some(json!(&self.clipboard_content)),
             StoreKey::RecentUrls => self.recent_urls.as_ref().map(|v| json!(v)),
-            StoreKey::DebugHosts => self.debug_hosts.as_ref().map(|v| json!(v)),
+            StoreKey::DebugHosts => Some(json!(&self.debug_hosts)),
             _ => None,
         }
     }
@@ -186,11 +186,18 @@ pub fn setup_tauri_store<T: Into<AppHandleRef>>(app: T) {
         AppHandleRef::App(app_handle) => app_handle,
         AppHandleRef::AppHandle(app_handle) => app_handle,
     };
-    let _result = update_tauri_store(
-        app_handle.clone(),
-        StoreKey::DebugHosts,
-        json!(Host::default()),
-    );
+    // setup debug hosts
+    // get last selected host
+    let debug_hosts = get_tauri_store(app_handle.clone()).unwrap().debug_hosts;
+    if let Some(debug_hosts) = debug_hosts {
+        let last_host = debug_hosts.get_selected_host();
+        let mut new_host = Host::default();
+        if let Some(host) = last_host {
+            new_host.set_selected_host(host);
+            let _result =
+                update_tauri_store(app_handle.clone(), StoreKey::DebugHosts, json!(new_host));
+        }
+    }
 }
 
 pub fn get_tauri_store<T: Into<AppHandleRef>>(app: T) -> std::option::Option<CostaStoreWrapper> {

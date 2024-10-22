@@ -157,7 +157,7 @@ impl CostaTray for SystemTrayMenu {
     }
     fn set_basic_menu(&self) -> SystemTrayMenu {
         self.clone()
-            .add_item(CustomMenuItem::new(OperationId::QrCode, "Scan QR Code"))
+            .add_item(CustomMenuItem::new(OperationId::ClipboardSchema, "Read Schema from Clipboard"))
             .add_item(CustomMenuItem::new(
                 OperationId::Safari,
                 "Open Safari Dev Tool",
@@ -176,10 +176,9 @@ impl CostaTray for SystemTrayMenu {
                 OperationId::RouteRefresh,
                 "Route Refresh",
             ))
-            .add_item(CustomMenuItem::new(OperationId::SetBOE, "Set BOE"))
-            .add_item(CustomMenuItem::new(OperationId::SetPPE, "Set PPE"))
-            .add_item(CustomMenuItem::new(OperationId::Login, "Login"))
-            .add_item(CustomMenuItem::new(OperationId::Logout, "Logout"))
+            .add_item(CustomMenuItem::new(OperationId::SetEnv, "Set Env"))
+            // .add_item(CustomMenuItem::new(OperationId::Login, "Login"))
+            // .add_item(CustomMenuItem::new(OperationId::Logout, "Logout"))
             .add_item(CustomMenuItem::new(
                 OperationId::DebugMenu,
                 "Open Debug Menu",

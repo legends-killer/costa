@@ -12,7 +12,7 @@ pub async fn heartbeat(
 ) -> Result<Option<String>, Box<dyn std::error::Error>> {
     let url = format!("{}{}/heartbeat", url, DEFAULT_PATH);
     // TODO: send heartbeat to the dev host
-    let resp = client.get(url).timeout(Duration::from_secs(3)).send().await;
+    let resp = client.get(url).timeout(Duration::from_secs(1)).send().await;
     // log::info!("heartbeat resp: {}", resp);
     let resp = match resp {
         Ok(resp) => resp.text().await?,
@@ -41,7 +41,7 @@ pub async fn heartbeat(
 pub async fn scan_local_debug_host() -> Result<HashMap<String, String>, Box<dyn std::error::Error>>
 {
     let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(3))
+        .timeout(Duration::from_secs(1))
         .build()
         .unwrap();
     let local_host = format!("http://{}", DEFAULT_HOSTNAME);

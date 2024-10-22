@@ -4,13 +4,13 @@ use strum_macros::{Display, EnumString};
 
 #[derive(EnumString, Debug, Display)]
 pub enum CostaRouter {
-    #[strum(to_string = "home")]
+    #[strum(to_string = "/home")]
     Home,
-    #[strum(to_string = "url_edit")]
+    #[strum(to_string = "/schema_editor")]
     UrlEdit,
-    #[strum(to_string = "download_app")]
+    #[strum(to_string = "/download_app")]
     DownloadApp,
-    #[strum(to_string = "env_edit")]
+    #[strum(to_string = "/env_edit")]
     EnvEdit,
 }
 
@@ -23,10 +23,10 @@ impl From<CostaRouter> for String {
 impl From<String> for CostaRouter {
     fn from(id: String) -> Self {
         match id.as_str() {
-            "home" => CostaRouter::Home,
-            "url_edit" => CostaRouter::UrlEdit,
-            "download_app" => CostaRouter::DownloadApp,
-            "env_edit" => CostaRouter::EnvEdit,
+            "/home" => CostaRouter::Home,
+            "/schema_editor" => CostaRouter::UrlEdit,
+            "/download_app" => CostaRouter::DownloadApp,
+            "/env_edit" => CostaRouter::EnvEdit,
             _ => CostaRouter::Home,
         }
     }

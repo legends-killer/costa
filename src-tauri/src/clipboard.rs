@@ -25,3 +25,9 @@ impl From<ClipboardContent> for serde_json::Value {
         serde_json::to_value(content).unwrap()
     }
 }
+
+impl PartialEq for ClipboardType {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_str() == other.as_str()
+    }
+}

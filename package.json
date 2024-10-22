@@ -7,20 +7,32 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri dev"
+    "tauri": "tauri dev",
+    "debug": "RUST_BACKTRACE=full tauri dev",
+    "build-dbg-app-arm64": "tauri build --target aarch64-apple-darwin --debug",
+    "build-dbg-app-x64": "tauri build --target x86_64-apple-darwin --debug",
+    "build-app-arm64": "tauri build --target aarch64-apple-darwin",
+    "build-app-x64": "tauri build --target x86_64-apple-darwin"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1",
+    "@arco-design/web-react": "^2.64.0",
+    "@monaco-editor/react": "^4.6.0",
+    "@tauri-apps/api": "1",
+    "ahooks": "^3.8.1",
+    "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^6.27.0",
     "tauri-plugin-clipboard-api": "^2.1.6",
     "tauri-plugin-store-api": "github:tauri-apps/tauri-plugin-store#v1"
   },
   "devDependencies": {
+    "@arco-plugins/vite-react": "^1.3.3",
     "@tauri-apps/cli": "^1",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.2.1",
+    "less": "^4.2.0",
     "typescript": "^5.0.2",
     "vite": "^5.0.0"
   }

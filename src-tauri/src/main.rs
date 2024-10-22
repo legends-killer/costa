@@ -5,17 +5,18 @@ mod clipboard;
 mod command;
 mod constant;
 mod file;
+mod host;
 mod path;
 mod simulator;
 mod sotre;
 mod tick;
 mod tray;
 mod window;
-mod host;
+mod constant_local;
 
 use command::handler::assamble_handler;
 use file::check_file_if_exists;
-use log::LevelFilter;
+use log::{debug, LevelFilter};
 use path::get_sotre_path;
 use sotre::{set_tauri_store, setup_tauri_store};
 use tauri::Manager;
@@ -29,7 +30,7 @@ fn main() {
     let mut app_builder = tauri::Builder::default();
     app_builder = assamble_handler(app_builder); // assemble command handler
     let app = app_builder
-        .plugin(tauri_plugin_store::Builder::default().build())// store plugin
+        .plugin(tauri_plugin_store::Builder::default().build()) // store plugin
         .plugin(tauri_plugin_clipboard::init()) // clipboard plugin
         .plugin(
             tauri_plugin_log::Builder::default()
