@@ -13,7 +13,7 @@ use crate::{
         command::{boot_device, get_all_devices, open_simulator_app},
         device::Device,
     },
-    sotre::{get_tauri_store, set_tauri_store, AppHandleRef, StoreKey},
+    sotre::{get_tauri_store, set_tauri_store, update_tauri_store, AppHandleRef, StoreKey},
     tray::menu::{self, TrayMenu},
 };
 
@@ -38,6 +38,19 @@ pub fn init_system_tray_menu(app: Option<&App>, handle: Option<AppHandle>) -> Sy
         simulator: get_all_devices(),
     };
     let store = get_tauri_store(handle.clone().unwrap());
+
+    // update device state in store
+    let _ = update_tauri_store(
+        handle.clone().unwrap(),
+        StoreKey::Tray,
+        Some(json!(simulators)).into(),
+    );
+    let _ = update_tauri_store(
+        handle.clone().unwrap(),
+        StoreKey::Simulator,
+        Some(json!(simulators.simulator)).into(),
+    );
+
     let menu_state = store.unwrap();
     let recent_devices: Vec<&Device> = menu_state
         .recent_devices
@@ -47,9 +60,10 @@ pub fn init_system_tray_menu(app: Option<&App>, handle: Option<AppHandle>) -> Sy
                 .simulator
                 .devices
                 .iter()
-                .find_map(|(version, devices)| devices.iter().find(|d| d.udid == id.to_string()))
-                .unwrap()
+                .flat_map(|(_, devices)| devices)
+                .find(|d| d.udid == id.to_string())
         })
+        .filter_map(|device| device)
         .collect();
     let hosts = menu_state.debug_hosts;
     // debug_println!("Hosts: {:?}", hosts);
@@ -101,7 +115,7 @@ impl CostaTray for SystemTrayMenu {
         for device in devices {
             // debug_println!("{:?} {:?}", device.state, device.udid);
             let mut menu_item = CustomMenuItem::new(
-                device.udid.clone(),
+                OperationId::OpenSimulator.to_string() + device.udid.clone().as_str(),
                 device.name.clone() + "-" + device.os_version.clone().unwrap().as_str(),
             );
             if device.state == "Booted" {
@@ -157,7 +171,10 @@ impl CostaTray for SystemTrayMenu {
     }
     fn set_basic_menu(&self) -> SystemTrayMenu {
         self.clone()
-            .add_item(CustomMenuItem::new(OperationId::ClipboardSchema, "Read Schema from Clipboard"))
+            .add_item(CustomMenuItem::new(
+                OperationId::ClipboardSchema,
+                "Read Schema from Clipboard",
+            ))
             .add_item(CustomMenuItem::new(
                 OperationId::Safari,
                 "Open Safari Dev Tool",

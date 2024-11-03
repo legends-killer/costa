@@ -1,10 +1,13 @@
+use std::collections::HashMap;
+
 /**
  * This module is used to execute the command of the simulator
  */
 use debug_print::debug_println;
+use log::info;
 
 use super::device::{Device, DeviceMap};
-
+use super::runtime::{Runtime};
 pub fn get_all_devices() -> DeviceMap {
     // exec `xcrun simctl list --json devices` and parse the output
     let output = std::process::Command::new("xcrun")
@@ -32,6 +35,36 @@ pub fn get_all_devices() -> DeviceMap {
     }
     devices
 }
+
+pub fn get_all_runtimes() -> HashMap<String, Runtime> {
+    // exec `xcrun simctl list --json runtimes` and parse the output
+    let output = std::process::Command::new("xcrun")
+        .arg("simctl")
+        .arg("runtime")
+        .arg("list")
+        .arg("--json")
+        .output()
+        .expect("failed to execute process");
+    let output = String::from_utf8(output.stdout).unwrap();
+    let map: HashMap<String, Runtime> = serde_json::from_str(&output).unwrap_or_else(|_| HashMap::new());
+    map
+}
+
+pub fn delete_runtime(app: tauri::AppHandle, id: String) -> Result<(), String> {
+    debug_println!("delete simulator runtime: {}", id);
+    // exec `xcrun simctl    delete the runtime
+    let output = std::process::Command::new("xcrun")
+        .arg("simctl")
+        .arg("runtime")
+        .arg("delete")
+        .arg(id)
+        .output()
+        .expect("failed to execute process");
+    let output = String::from_utf8(output.stdout).unwrap();
+    println!("{}", output);
+    Ok(())
+}
+
 
 pub fn boot_device(udid: &str) {
     // exec `xcrun simctl boot <udid>` to boot the device
@@ -77,8 +110,9 @@ pub fn install_app(udid: &str, app_path: &str) {
         .arg(udid)
         .arg(app_path)
         .output()
-        .expect("failed to execute process");
+        .expect("failed to install app");
     let output = String::from_utf8(output.stdout).unwrap();
+    info!("install app: {}", output);
     println!("{}", output);
 }
 
@@ -122,6 +156,7 @@ pub fn terminate_app(udid: &str, bundle_id: &str) {
 }
 
 pub fn open_url(udid: &str, url: &str) {
+    debug_println!("open url: {} {}", udid, url);
     // exec `xcrun simctl openurl <udid> <url>` to open the url
     let output = std::process::Command::new("xcrun")
         .arg("simctl")
@@ -209,7 +244,7 @@ fn find_all_menu_item_in_dev_tool() -> String {
     output
 }
 
-fn find_all_web_view_windows_in_simultor(simulator: &str) -> String {
+pub fn find_all_web_view_windows_in_simultor(simulator: &str) -> String {
     let apple_script = r#"
 
     "#

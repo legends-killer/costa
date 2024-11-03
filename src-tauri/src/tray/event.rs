@@ -2,14 +2,24 @@ use std::time::Duration;
 
 use debug_print::{debug_print, debug_println};
 use image;
-use log::info;
+use log::{error, info};
 use rqrr::{self, DeQRError};
 use serde_json::json;
+use tauri::api::notification::Notification;
 use tauri::{AppHandle, Manager, SystemTrayEvent};
 use tauri_plugin_clipboard::ClipboardManager;
 
 use crate::{
-    clipboard::{ClipboardContent, ClipboardType}, constant::{DEFAULT_HOST, DEFAULT_PATH}, constant_local::APP_DOWNLOAD_URL, host::host::HostOperation, simulator::command::{boot_device, get_all_devices, open_safari_dev_tool, open_simulator_app}, sotre::{get_tauri_store, set_tauri_store, update_tauri_store}, tray::operation::OperationId, window::costa_window
+    clipboard::{ClipboardContent, ClipboardType},
+    constant::{DEFAULT_HOST, DEFAULT_PATH},
+    host::host::HostOperation,
+    simulator::command::{
+        boot_device, find_all_web_view_windows_in_simultor, get_all_devices, open_safari_dev_tool,
+        open_simulator_app,
+    },
+    sotre::{get_tauri_store, set_tauri_store, update_tauri_store},
+    tray::operation::OperationId,
+    window::costa_window,
 };
 
 use reqwest::Client;
@@ -34,22 +44,38 @@ pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
                     //     return;
                     // }
                     // just open a url in browser
-                    let url = APP_DOWNLOAD_URL;
-                    let output = std::process::Command::new("open")
-                        .arg(url)
-                        .output()
-                        .expect("failed to execute process");
-                    let output = String::from_utf8(output.stdout).unwrap();
+                    // let url = APP_DOWNLOAD_URL;
+                    // let output = std::process::Command::new("open")
+                    //     .arg(url)
+                    //     .output()
+                    //     .expect("failed to execute process");
+                    // let output = String::from_utf8(output.stdout).unwrap();
+                    let _ = create_download_app_window(app_handle);
                 }
                 // quit the app
                 OperationId::Quit => app_handle.exit(0),
                 // open Safari developer tools
-                OperationId::Safari => open_safari_dev_tool("", None),
+                OperationId::Safari => {
+                    // send system notification to tell user this is WIP
+                    Notification::new("WIP")
+                        .title("This feature is under development")
+                        .body("Please wait for the next release")
+                        .show()
+                        .unwrap();
+                    let app_handle = app_handle.clone();
+                    // get devicemap from the store
+                    let devicemap = get_tauri_store(app_handle.clone()).unwrap().simulator;
+                    if let Some(device) = devicemap.get_first_booted_device() {
+                        // let all_webview_windows = find_all_web_view_windows_in_simultor(&devicemap);
+                        // open_safari_dev_tool(device.udid.as_str(), None);
+                    }
+                }
                 // scan QR code in clipboard & open the url edit window
                 OperationId::ClipboardSchema => {
                     let clipboard_result = read_clipboard(app_handle);
                     if let Err(e) = clipboard_result {
-                        debug_print!("QR Code Read Error: {:?}", e);
+                        error!("QR Code Read Error: {:?}", e);
+                        costa_window::create_url_edit_window(app_handle);
                         return;
                     }
                     // TODO: set the clipboard content to the store
@@ -81,7 +107,8 @@ pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
                 OperationId::SetEnv => {
                     let clipboard_result = read_clipboard(app_handle);
                     if let Err(e) = clipboard_result {
-                        debug_print!("QR Code Read Error: {:?}", e);
+                        error!("QR Code Read Error: {:?}", e);
+                        costa_window::create_env_edit_window(app_handle);
                         return;
                     };
                     let _ = update_tauri_store(
@@ -112,13 +139,14 @@ pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
                             .split(OperationId::OpenSimulator.to_string().as_str())
                             .last()
                             .unwrap();
+                        debug_println!("Open Simulator: {}", dev_id);
                         let mut store = get_tauri_store(app_handle.clone());
                         let mut menu_state = store.unwrap();
                         let mut devs = menu_state.simulator.devices.clone();
                         // match the device id
                         for (_versiuon, devices) in devs.iter_mut() {
                             for device in devices.iter_mut() {
-                                dbg!(device.udid.clone());
+                                // dbg!(device.udid.clone());
                                 if device.udid == dev_id {
                                     // set recent devices
                                     let mut recent_devices = menu_state.recent_devices.clone();
@@ -135,7 +163,7 @@ pub fn on_system_tray_event(app_handle: &AppHandle, event: SystemTrayEvent) {
                             }
                         }
                         let devices = get_all_devices();
-                        boot_device(&id);
+                        boot_device(&dev_id);
                         open_simulator_app();
                     });
                 }

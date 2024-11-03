@@ -1,5 +1,8 @@
+use debug_print::debug_println;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use super::command::{open_url, list_apps, terminate_app, install_app, uninstall_app};
 
 /**
  * HashMap<String, Vec<Device>> is a map of devices grouped by version
@@ -41,6 +44,11 @@ impl DeviceMap {
             v.iter().find(|d| d.name == "iPhone 15 Pro")
         })
     }
+    pub fn get_first_booted_device(&self) -> Option<&Device> {
+        self.devices
+            .values()
+            .find_map(|v| v.iter().find(|d| d.state == "Booted"))
+    }
     // default
     pub fn default() -> Self {
         Self {
@@ -54,6 +62,14 @@ impl Into<String> for DeviceMap {
         serde_json::to_string(&self).unwrap_or_else(|_| "{}".into())
     }
 }
+
+impl From<Option<serde_json::Value>> for DeviceMap {
+    fn from(value: Option<serde_json::Value>) -> Self {
+        serde_json::from_value(value.unwrap_or_else(|| "{}".into()))
+            .unwrap_or_else(|_| DeviceMap::default())
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Device {
     #[serde(rename = "dataPath")]
@@ -103,5 +119,21 @@ impl Device {
             log_path_size,
             os_version: os_version,
         }
+    }
+    pub fn open_url(&self, url: &str) {
+        open_url(&self.udid, url);
+    }
+    pub fn list_apps(&self) {
+        list_apps(&self.udid);
+    }
+    pub fn terminate_app(&self, bundle_id: &str) {
+        terminate_app(&self.udid, bundle_id);
+    }
+    pub fn install_app(&self, app_path: &str) {
+        debug_println!("installing app: {}", app_path);
+        install_app(&self.udid, app_path);
+    }
+    pub fn uninstall_app(&self, bundle_id: &str) {
+        uninstall_app(&self.udid, bundle_id);
     }
 }

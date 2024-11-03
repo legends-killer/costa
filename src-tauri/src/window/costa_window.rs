@@ -41,9 +41,8 @@ pub fn create_window(handle: &AppHandle, label: &str, route: &str) -> Result<(),
     let local_window =
         tauri::WindowBuilder::new(handle, label, tauri::WindowUrl::App(route.into())).build()?;
     local_window.set_title("Costa");
-    if IS_DEBUG {
-        local_window.open_devtools();
-    }
+    #[cfg(debug_assertions)]
+    local_window.open_devtools();
 
     Ok(())
 }
@@ -77,9 +76,8 @@ macro_rules! create_costa_window {
         }));
 
         // Open DevTools if in debug mode
-        if IS_DEBUG {
-            local_window.open_devtools();
-        }
+        #[cfg(debug_assertions)]
+        local_window.open_devtools();
 
         Ok(())
     }};

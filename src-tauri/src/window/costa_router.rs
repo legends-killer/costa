@@ -8,7 +8,7 @@ pub enum CostaRouter {
     Home,
     #[strum(to_string = "/schema_editor")]
     UrlEdit,
-    #[strum(to_string = "/download_app")]
+    #[strum(to_string = "/app_config")]
     DownloadApp,
     #[strum(to_string = "/env_edit")]
     EnvEdit,
