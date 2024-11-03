@@ -4,6 +4,7 @@ import Home from './App';
 import SchemaEditor from './pages/schema_editor';
 import EnvEditor from './pages/env_editor';
 import './index.less';
+import AppConfig from './pages/app_config';
 
 const Router: React.FC = () => {
   const darkThemeMq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -23,6 +24,7 @@ const Router: React.FC = () => {
         <Route path="/env_edit" element={<EnvEditor />} />
         <Route path="/" element={<Navigate replace to="/home" />} />
         <Route path="*" element={<Navigate replace to="/home" />} />
+        <Route path="/app_config" element={<AppConfig />} />
       </Routes>
     </BrowserRouter>
   );
