@@ -4,6 +4,7 @@ version = "0.0.0"
 description = "A Tauri App"
 authors = ["yyy@legends-killer.cq.cn>"]
 edition = "2021"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
