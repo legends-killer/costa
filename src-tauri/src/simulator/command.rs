@@ -261,9 +261,12 @@ pub fn find_all_web_view_windows_in_simultor(simulator: &str) -> String {
 }
 
 pub fn open_safari_dev_tool(udid: &str, web_view_name: Option<&str>) {
-    let simulator = "LM73L9FPFH\nmacOS 14.4.1".to_string();
-    let window =
-        web_view_name.unwrap_or("api-b-sinfonlinea.dcarapi.com — customer-profile-input.html");
+    let all_menu_items = find_all_menu_item_in_dev_tool();
+    let all_menu_items: Vec<String> = serde_json::from_str(&all_menu_items).unwrap();
+    let all_devices = get_all_devices();
+    let device = all_devices.get_device_by_udid(udid).unwrap();
+    let simulator = device.name.clone();
+    let window = web_view_name.unwrap_or("WebView");
     // var1: ${simulator}
     // var2: ${window}
     let apple_script = r#"
@@ -304,14 +307,6 @@ pub fn open_safari_dev_tool(udid: &str, web_view_name: Option<&str>) {
     .to_owned()
     .replace("${simulator}", &simulator)
     .replace("${window}", window);
-
-    // let all_menu_items = find_all_menu_item_in_dev_tool();
-    // let all_menu_items: Vec<String> = serde_json::from_str(&all_menu_items).unwrap();
-    // let all_devices = get_all_devices();
-    // let device = all_devices.get_device_by_udid(udid).unwrap();
-    // let simulator = device.name.clone();
-    // let simulator = "LM73L9FPFH\nmacOS 14.4.1".to_string();
-    // let window = web_view_name.unwrap_or("api-b-sinfonlinea.dcarapi.com — customer-profile-input.html");
     let output = std::process::Command::new("osascript")
         .arg("-e")
         .arg(apple_script)
